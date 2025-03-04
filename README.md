@@ -144,3 +144,141 @@ This project is **open-source** and available for use.
 
 🚀 **Happy Terraforming!**
 
+# Three-Tier Architecture with Terraform on AWS
+
+## Introduction
+This project implements a **Three-Tier Architecture** using **Terraform** to provision infrastructure on **AWS**. It follows best practices for **scalability, security, and high availability** by separating resources into three layers:
+
+1. **Presentation Layer (Frontend) - Web Servers & Load Balancer**
+2. **Application Layer (Backend) - App Servers**
+3. **Database Layer - RDS (Relational Database Service)**
+
+---
+
+## Project Architecture
+
+### **1️⃣ Presentation Layer (Frontend)**
+- **Purpose:** Serves static content and handles incoming traffic.
+- **AWS Services:**
+  - **Elastic Load Balancer (ALB)** - Distributes traffic across instances.
+  - **Auto Scaling Group (ASG)** - Ensures high availability.
+  - **EC2 Instances** - Web servers running Apache/NGINX.
+  - **Public Subnet** - Web servers are accessible from the internet.
+
+### **2️⃣ Application Layer (Backend)**
+- **Purpose:** Processes business logic and API requests.
+- **AWS Services:**
+  - **EC2 Instances** - Runs backend services (Node.js, Python, Java, etc.).
+  - **Auto Scaling Group (ASG)** - Scales based on demand.
+  - **Security Group** - Restricts access to only frontend requests.
+  - **Private Subnet** - No direct internet access.
+
+### **3️⃣ Database Layer**
+- **Purpose:** Stores and manages application data securely.
+- **AWS Services:**
+  - **Amazon RDS** (MySQL/PostgreSQL) - Managed database service.
+  - **Database Subnet Group** - Provides high availability.
+  - **Private Subnet** - No direct internet access.
+  - **Security Group** - Only allows connections from the application layer.
+
+---
+
+## Infrastructure Setup Using Terraform
+### **1️⃣ Terraform Variables (Reusable Configuration)**
+```hcl
+variable "aws_region" {
+  description = "AWS region"
+  default     = "us-east-1"
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block"
+  default     = "10.0.0.0/16"
+}
+```
+
+### **2️⃣ VPC & Subnets**
+```hcl
+resource "aws_vpc" "main_vpc" {
+  cidr_block = var.vpc_cidr
+}
+
+resource "aws_subnet" "public_subnet" {
+  vpc_id     = aws_vpc.main_vpc.id
+  cidr_block = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "private_subnet" {
+  vpc_id     = aws_vpc.main_vpc.id
+  cidr_block = "10.0.2.0/24"
+}
+```
+
+### **3️⃣ Load Balancer & Auto Scaling Group**
+```hcl
+resource "aws_lb" "app_lb" {
+  name               = "app-lb"
+  internal           = false
+  load_balancer_type = "application"
+  subnets           = [aws_subnet.public_subnet.id]
+}
+```
+
+### **4️⃣ Database Setup**
+```hcl
+resource "aws_db_instance" "db" {
+  engine         = "mysql"
+  instance_class = "db.t3.micro"
+  username      = "admin"
+  password      = "mypassword"
+  db_subnet_group_name = aws_subnet.private_subnet.id
+}
+```
+
+---
+
+## How to Deploy
+1. **Install Terraform**: [Download Terraform](https://www.terraform.io/downloads)
+2. **Initialize Terraform**:
+   ```sh
+   terraform init
+   ```
+3. **Plan the Deployment**:
+   ```sh
+   terraform plan
+   ```
+4. **Apply the Configuration**:
+   ```sh
+   terraform apply -auto-approve
+   ```
+5. **Access the Load Balancer**:
+   - Run `terraform output` to get the ALB DNS name.
+   - Open it in a browser to check the frontend.
+
+---
+
+## Clean Up Resources
+To delete all AWS resources created by Terraform:
+```sh
+terraform destroy -auto-approve
+```
+
+---
+
+## Benefits of This Architecture
+✅ **High Availability** - Auto Scaling & Load Balancer ensure uptime.  
+✅ **Security** - Private subnets for backend & database.  
+✅ **Scalability** - Auto Scaling dynamically adjusts resources.  
+✅ **Cost Efficiency** - Resources are provisioned on demand.  
+
+---
+
+## Next Steps
+- Implement **IAM roles** for secure access.
+- Add **monitoring & logging** (CloudWatch, AWS Config).
+- Automate with **CI/CD pipelines**.
+
+🚀 **Deploy your scalable AWS application today!**
+
+
